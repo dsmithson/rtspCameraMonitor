@@ -3,6 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Image files
+*.jpg
+*.jpeg
+
+# VS Code
+.vscode/
+
 # C extensions
 *.so
 
