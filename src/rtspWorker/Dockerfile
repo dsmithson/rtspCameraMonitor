@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Install FFMPEG
-apt-get install -y ffmpeg
+RUN apt-get install -y ffmpeg
 
 # Install pip requirements
 ADD requirements.txt .
