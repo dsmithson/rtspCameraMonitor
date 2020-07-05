@@ -7,6 +7,9 @@ ENV PYTHONDONTWRITEBYTECODE 1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED 1
 
+# Install FFMPEG
+apt-get install -y ffmpeg
+
 # Install pip requirements
 ADD requirements.txt .
 RUN python -m pip install -r requirements.txt
