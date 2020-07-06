@@ -31,13 +31,28 @@ currentNativeImageFile = "./capture-current-native.jpg"
 currentImageFile = "./capture-current.jpg"
 lastImageFile = "./capture-last.jpg"
 
-#Connect to RabbitMQ (if defined)
-if rabbitMqHost != '':
-    rabbitCreds = pika.PlainCredentials(rabbitMqUser, rabbitMqPass)
-    rabbitParams = pika.ConnectionParameters(rabbitMqHost, rabbitMqPort, rabbitMqVDir, rabbitCreds)
-    rabbitConn = pika.BlockingConnection(rabbitParams)
-    rabbitChannel = rabbitConn.channel()
-    rabbitChannel.exchange_declare(exchange=rabbitMqExchange, exchange_type='topic', durable=True)
+def writeRabbitMessage(messageBody):
+
+    if rabbitMqHost is None:
+        return
+
+    try:
+        rabbitCreds = pika.PlainCredentials(rabbitMqUser, rabbitMqPass)
+        rabbitParams = pika.ConnectionParameters(rabbitMqHost, rabbitMqPort, rabbitMqVDir, rabbitCreds)
+        rabbitConn = pika.BlockingConnection(rabbitParams)
+        rabbitChannel = rabbitConn.channel()
+        rabbitChannel.exchange_declare(exchange=rabbitMqExchange, exchange_type='topic', durable=True)
+
+        print("Writing to RabbitMQ {0}{1}:{2}".format(rabbitMqHost, rabbitMqVDir, rabbitMqRoutingKey))        
+        rabbitChannel.basic_publish(exchange=rabbitMqExchange, 
+            routing_key=rabbitMqRoutingKey, 
+            body=json.dumps(messageBody), 
+            properties=pika.BasicProperties(content_type="application/json"))
+
+        rabbitConn.close()
+    except Exception as e:
+        print("Failed to write RabbitMQ message: {0}".format(e))
+
 
 #Run in infinite loop
 while True:
@@ -76,23 +91,15 @@ while True:
                     shutil.copyfile(currentNativeImageFile, nativePath)
 
                 #Optionally write message to message queue to process
-                if rabbitChannel is not None:
-                    try:
-                        print("Writing message with thumbnail to RabbitMQ {0}{1}:{2}".format(rabbitMqHost, rabbitMqVDir, rabbitMqRoutingKey))
-                        imageBytes = io.BytesIO()
-                        image.save(imageBytes, format='JPEG')
-                        messageBody = {
-                            "captureTime": timestamp,
-                            "camName": camName,
-                            "imageData": imageBytes.getvalue().hex()
-                        }
-                        rabbitChannel.basic_publish(exchange=rabbitMqExchange, 
-                            routing_key=rabbitMqRoutingKey, 
-                            body=json.dumps(messageBody), 
-                            properties=pika.BasicProperties(content_type="application/json"))
-                    except Exception as e:
-                        print("Failed to write RabbitMQ message: {0}".format(e))
-
+                if rabbitMqHost is not None:
+                    imageBytes = io.BytesIO()
+                    image.save(imageBytes, format='JPEG')
+                    messageBody = {
+                        "captureTime": timestamp,
+                        "camName": camName,
+                        "imageData": imageBytes.getvalue().hex()
+                    }
+                    writeRabbitMessage(messageBody)
 
 
         #Store current image as last image
