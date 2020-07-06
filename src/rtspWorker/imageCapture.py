@@ -14,6 +14,7 @@ from skimage.metrics import structural_similarity as ssim
 interval = int(os.environ.get('CAPTURE_INTERVAL_SECONDS', '300'))
 camName = os.environ.get('CAMERA_NAME')
 rtspUrl = os.environ.get('CAMERA_RTSP_URL')
+ssimCompareThreshold = float(os.environ.get('SSIM_THRESHOLD', 0.9))
 
 optionalThumbnailSaveDirectory = os.environ.get('CAMERA_THUMBNAIL_DIR', '')
 optionalNativeSaveDirectory = os.environ.get('CAMERA_NATIVE_DIR', '')
@@ -43,7 +44,7 @@ while True:
 
     #Capture frame of video using FFMPEG
     timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-    print("{0}: Capturing next video frame for '{1}'".format(timestamp, camName))
+    print("{0}: Obtaining next video frame for '{1}'".format(timestamp, camName))
     p = subprocess.Popen(["ffmpeg", "-y", "-i", str(rtspUrl), "-loglevel", "panic", "-hide_banner", "-vframes", "1", str(currentNativeImageFile)])
     p.wait()
     if p.returncode == 0:
@@ -59,7 +60,7 @@ while True:
             lastImageData = skio.imread(lastImageFile)
             imageData = skio.imread(currentImageFile)
             ssim_compare = ssim(imageData, lastImageData, data_range=lastImageData.max() - lastImageData.min())
-            if ssim_compare < 0.9:
+            if ssim_compare < ssimCompareThreshold:
                 print("{0} Image change detected - SSIM value is {1}".format(camName, ssim_compare))
 
                 #Optionally write thumbnail to output directory
@@ -76,18 +77,23 @@ while True:
 
                 #Optionally write message to message queue to process
                 if rabbitChannel is not None:
-                    print("Writing message with thumbnail to RabbitMQ {0}{1}:{2}", rabbitMqHost, rabbitMqVDir, rabbitMqRoutingKey)
-                    imageBytes = io.BytesIO()
-                    image.save(imageBytes, format='JPEG')
-                    messageBody = {
-                        "captureTime": timestamp,
-                        "camName": camName,
-                        "imageData": imageBytes.getvalue().hex()
-                    }
-                    rabbitChannel.basic_publish(exchange=rabbitMqExchange, 
-                        routing_key=rabbitMqRoutingKey, 
-                        body=json.dumps(messageBody), 
-                        properties=pika.BasicProperties(content_type="application/json"))
+                    try:
+                        print("Writing message with thumbnail to RabbitMQ {0}{1}:{2}".format(rabbitMqHost, rabbitMqVDir, rabbitMqRoutingKey))
+                        imageBytes = io.BytesIO()
+                        image.save(imageBytes, format='JPEG')
+                        messageBody = {
+                            "captureTime": timestamp,
+                            "camName": camName,
+                            "imageData": imageBytes.getvalue().hex()
+                        }
+                        rabbitChannel.basic_publish(exchange=rabbitMqExchange, 
+                            routing_key=rabbitMqRoutingKey, 
+                            body=json.dumps(messageBody), 
+                            properties=pika.BasicProperties(content_type="application/json"))
+                    except Exception as e:
+                        print("Failed to write RabbitMQ message: {0}".format(e))
+
+
 
         #Store current image as last image
         #We do this even if the image hasn't changed, as it allows for slow change (daylight to night, for example)
