@@ -25,7 +25,7 @@ rabbitMqVDir = os.environ.get("RABBITMQ_VDIR", '/')
 rabbitMqUser = os.environ.get("RABBITMQ_USER")
 rabbitMqPass = os.environ.get("RABBITMQ_PASS")
 rabbitMqExchange = os.environ.get("RABBITMQ_EXCHANGE", "knighware.cameraImages")
-rabbitMqRoutingKey = os.environ.get("RABBITMQ_ROUTING_KEY", "actions.write")
+rabbitMqRoutingKey = os.environ.get("RABBITMQ_ROUTING_KEY", "actions.write.image")
 
 currentNativeImageFile = "./capture-current-native.jpg"
 currentImageFile = "./capture-current.jpg"
