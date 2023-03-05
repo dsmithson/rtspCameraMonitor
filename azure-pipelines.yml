@@ -3,9 +3,6 @@ trigger:
 pr:
 - master
 
-variables:
-  appVersion: '1.2.$(Build.BuildId)'
-
 stages:
   - stage: 'Build_Docker'
 
