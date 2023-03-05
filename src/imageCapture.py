@@ -16,6 +16,8 @@ camName = os.environ.get('CAMERA_NAME')
 rtspUrl = os.environ.get('CAMERA_RTSP_URL')
 ssimCompareThreshold = float(os.environ.get('SSIM_THRESHOLD', 0.9))
 
+ffmpegTimeout = int(os.environ.get('FFMPEG_TIMEOUT_SECONDS', 300))
+
 optionalThumbnailSaveDirectory = os.environ.get('CAMERA_THUMBNAIL_DIR', '')
 optionalNativeSaveDirectory = os.environ.get('CAMERA_NATIVE_DIR', '')
 
@@ -61,7 +63,14 @@ while True:
     timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
     print("{0}: Obtaining next video frame for '{1}'".format(timestamp, camName))
     p = subprocess.Popen(["ffmpeg", "-y", "-i", str(rtspUrl), "-loglevel", "panic", "-hide_banner", "-vframes", "1", str(currentNativeImageFile)])
-    p.wait()
+    try:
+        # Give FFMPEG
+        outs, errs = p1.communicate(timeout=ffmpegTimeout)
+    except subprocess.TimeoutExpired as e:
+        p.kill()
+        print("Timed out waiting for FFMPEG processing to complete.")
+        #break
+
     if p.returncode == 0:
     
         #Scale image down and convert to grayscale
