@@ -1,0 +1,46 @@
+trigger:
+- main
+pr:
+- main
+
+variables:
+  appVersion: '1.2.$(Build.BuildId)'
+
+stages:
+  - stage: 'Build_Docker'
+
+    jobs:
+      - job: Build_images
+        displayName: Build images
+        strategy:
+          matrix:
+            LinuxAmd64:
+              vmImage: 'ubuntu-latest'
+              imageName: 'linux-x64'
+              dockerfile: 'src/Dockerfile.Linux'
+            Windows:
+              vmImage: 'windows-2019'
+              imageName: 'windows-x64'
+              dockerfile: 'src/Dockerfile.Windows'
+        pool:
+          vmImage: $(vmImage)
+        steps:
+        - template: yml-steps/build-and-push.yml
+          parameters:
+            targetStage: $(imageName)
+            repository: 'dsmithson/rtspcameracapture'
+            dockerfile: $(dockerfile)
+
+      - job: Push_Manifest_List
+        condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+        dependsOn:
+        - Build_images
+        displayName: Push Manifest List
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+        - template: yml-steps/create-manifest-list.yml
+          parameters:
+            appVersion: '1.3'
+            manifestName: 'dsmithson/rtspcameracapture'
+            childImages: '$REGISTRYURL/dsmithson/rtspcameracapture:${BUILD_BUILDID}-linux-x64 $REGISTRYURL/dsmithson/rtspcameracapture:${BUILD_BUILDID}-windows-x64'
