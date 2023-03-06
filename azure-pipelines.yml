@@ -29,7 +29,7 @@ stages:
             dockerfile: $(dockerfile)
 
       - job: Push_Manifest_List
-        condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+        condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
         dependsOn:
         - Build_images
         displayName: Push Manifest List
