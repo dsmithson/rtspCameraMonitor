@@ -14,7 +14,7 @@ steps:
     REGISTRY_PASSWORD: $(REGISTRY_PASSWORD)
 
 - task: 'Bash@3'
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   inputs:
     targetType: 'inline'
     script: |
