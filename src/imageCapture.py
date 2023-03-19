@@ -6,6 +6,7 @@ import time
 import json
 import pika
 from PIL import Image, ImageOps
+from PIL.Image import Resampling
 import numpy as np
 from skimage import data, img_as_float, io as skio
 from skimage.metrics import structural_similarity as ssim
@@ -65,7 +66,7 @@ while True:
     p = subprocess.Popen(["ffmpeg", "-y", "-i", str(rtspUrl), "-loglevel", "panic", "-hide_banner", "-vframes", "1", str(currentNativeImageFile)])
     try:
         # Give FFMPEG
-        outs, errs = p1.communicate(timeout=ffmpegTimeout)
+        outs, errs = p.communicate(timeout=ffmpegTimeout)
     except subprocess.TimeoutExpired as e:
         p.kill()
         print("Timed out waiting for FFMPEG processing to complete.")
@@ -75,7 +76,7 @@ while True:
     
         #Scale image down and convert to grayscale
         image = Image.open(currentNativeImageFile)
-        image.thumbnail((512,512), Image.ANTIALIAS)
+        image.thumbnail((512,512), Resampling.LANCZOS)
         image = ImageOps.grayscale(image)
         image.save(currentImageFile)
 
